@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type gravatarJSON struct {
@@ -32,7 +34,7 @@ type gravatarJSON struct {
 
 func gravatar(username string) []byte {
 	fmt.Println("Fetching Gravatar")
-	gravURL := fmt.Sprintf("https://en.gravatar.com/%s.json", url.PathEscape(username))
+	gravURL := fmt.Sprintf("https://www.gravatar.com/%s.json", url.PathEscape(username))
 	res, err := http.Get(gravURL)
 	checkError(err)
 	b, err := ioutil.ReadAll(res.Body)
@@ -55,13 +57,26 @@ func gravatar(username string) []byte {
 	return imgbytes
 }
 
+func emailToGravID(email string) string {
+	email = strings.ToLower(strings.TrimSpace(email))
+	id := fmt.Sprintf("%x", md5.Sum([]byte(email)))
+	return id
+}
+
 func getAvatar(conf map[string]interface{}) {
 	imgpath := filepath.Join(conf["imagepath"].(string), "avatar.jpg")
 
 	if _, err := os.Stat(imgpath); os.IsNotExist(err) {
 		gravatarUser := conf["gravatarusername"].(string)
+		gravatarEmail := conf["gravataremail"].(string)
+		var gravatarID string
 		if gravatarUser != "" {
-			avatar := gravatar(gravatarUser)
+			gravatarID = gravatarUser
+		} else if gravatarEmail != "" {
+			gravatarID = emailToGravID(gravatarEmail)
+		}
+		if gravatarID != "" {
+			avatar := gravatar(gravatarID)
 			fmt.Printf("Saving to %s\n", imgpath)
 			err = ioutil.WriteFile(imgpath, avatar, 0666)
 			checkError(err)
