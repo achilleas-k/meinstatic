@@ -3,7 +3,7 @@ h1 {
     font-size: 24px;
     font-style: normal;
     font-variant: small-caps;
-    font-weight: 500;
+    font-weight: normal;
     line-height: 26.4px;
     width: 60%;
     margin: auto;
@@ -15,7 +15,7 @@ h2 {
     font-size: 20px;
     font-style: normal;
     font-variant: normal;
-    font-weight: 500;
+    font-weight: normal;
     line-height: 15.4px;
     width: 55%;
     margin: auto;
@@ -27,7 +27,7 @@ h3 {
     font-size: 14px;
     font-style: normal;
     font-variant: normal;
-    font-weight: 500;
+    font-weight: normal;
     line-height: 16px;
     width: 60%;
     margin: auto;
