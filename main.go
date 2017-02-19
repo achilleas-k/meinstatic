@@ -9,11 +9,13 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
+	"github.com/spf13/viper"
 )
 
 func checkError(err error) {
@@ -66,7 +68,7 @@ type gravatarJSON struct {
 	} `json:"entry"`
 }
 
-func gravatar(username string) {
+func gravatar(username string) []byte {
 	fmt.Println("Fetching Gravatar")
 	gravURL := fmt.Sprintf("https://en.gravatar.com/%s.json", url.PathEscape(username))
 	res, err := http.Get(gravURL)
@@ -85,12 +87,10 @@ func gravatar(username string) {
 	res, err = http.Get(imgURL)
 	checkError(err)
 
-	b, err = ioutil.ReadAll(res.Body)
+	imgbytes, err := ioutil.ReadAll(res.Body)
 	checkError(err)
 
-	fmt.Println("Saving to images/avatar.jpg")
-	err = ioutil.WriteFile("images/avatar.jpg", b, 0660)
-	checkError(err)
+	return imgbytes
 }
 
 func filenameNoExt(fname string) string {
@@ -98,8 +98,58 @@ func filenameNoExt(fname string) string {
 	return strings.TrimSuffix(fname, filepath.Ext(fname))
 }
 
+func loadConfig() map[string]interface{} {
+	config := viper.GetViper()
+	config.SetConfigName("config")
+	config.AddConfigPath(".")
+	config.SetDefault("SourcePagePath", "pages-md")
+	config.SetDefault("DestinationPagePath", "pages-html")
+	config.SetDefault("GravatarUsername", "")
+	config.SetDefault("GravatarEmail", "")
+	config.SetDefault("ImagePath", "images")
+	config.SetDefault("PageTemplateFile", "template.html")
+	config.SetDefault("StyleFile", "style.css")
+	err := config.ReadInConfig()
+	if err != nil && !strings.Contains(err.Error(), "Not Found") {
+		checkError(err)
+	}
+	return config.AllSettings()
+}
+
+func createDirs(conf map[string]interface{}) {
+	destPath := conf["destinationpagepath"].(string)
+	err := os.Mkdir(destPath, 0777)
+	if !os.IsExist(err) {
+		checkError(err)
+	}
+
+	imagePath := conf["imagepath"].(string)
+	err = os.Mkdir(imagePath, 0777)
+	if !os.IsExist(err) {
+		checkError(err)
+	}
+}
+
+func getAvatar(conf map[string]interface{}) {
+	imgpath := filepath.Join(conf["imagepath"].(string), "avatar.jpg")
+
+	if _, err := os.Stat(imgpath); os.IsNotExist(err) {
+		gravatarUser := conf["gravatarusername"].(string)
+		if gravatarUser != "" {
+			avatar := gravatar(gravatarUser)
+			fmt.Printf("Saving to %s\n", imgpath)
+			err = ioutil.WriteFile(imgpath, avatar, 0666)
+			checkError(err)
+		}
+	}
+	fmt.Printf("Found profile picture [%s]. Will not download.\n", imgpath)
+}
+
 func main() {
-	mdfiles, err := filepath.Glob("pages-md/*.md")
+	conf := loadConfig()
+	createDirs(conf)
+
+	mdfiles, err := filepath.Glob(filepath.Join(conf["sourcepagepath"].(string), "*.md"))
 	checkError(err)
 
 	npages := len(mdfiles)
@@ -118,9 +168,11 @@ func main() {
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
-		outPath := filepath.Join("pages-html", outName)
-		err = ioutil.WriteFile(outPath, makeHTML(safe), 0660)
+		outPath := filepath.Join(conf["destinationpagepath"].(string), outName)
+		err = ioutil.WriteFile(outPath, makeHTML(safe), 0666)
 		fmt.Printf(" → %s\n", outPath)
 		pageList[idx] = outPath
 	}
+
+	getAvatar(conf)
 }
