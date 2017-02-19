@@ -99,17 +99,28 @@ func filenameNoExt(fname string) string {
 }
 
 func main() {
-	mdfiles, err := filepath.Glob("pages/*.md")
+	mdfiles, err := filepath.Glob("pages-md/*.md")
 	checkError(err)
 
-	fmt.Println("Pages")
+	npages := len(mdfiles)
+	pageList := make([]string, npages)
+	plural := func(n int) string {
+		if n != 1 {
+			return "s"
+		}
+		return ""
+	}
+	fmt.Printf("Generating %d page%s\n", npages, plural(npages))
 	for idx, fname := range mdfiles {
-		fmt.Printf("%d: %s\n", idx, fname)
+		fmt.Printf("%d: %s", idx+1, fname)
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
-		err = ioutil.WriteFile(outName, makeHTML(safe), 0660)
+		outPath := filepath.Join("pages-html", outName)
+		err = ioutil.WriteFile(outPath, makeHTML(safe), 0660)
+		fmt.Printf(" → %s\n", outPath)
+		pageList[idx] = outPath
 	}
 }
