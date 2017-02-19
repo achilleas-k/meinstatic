@@ -17,10 +17,9 @@ h2 {
     font-variant: normal;
     font-weight: normal;
     line-height: 15.4px;
-    width: 55%;
+    width: 47%;
     margin: auto;
     padding-top: 20px;
-    /* border-bottom: 1px solid; */
 }
 h3 {
     font-family: "sans-serif";
@@ -29,7 +28,7 @@ h3 {
     font-variant: normal;
     font-weight: normal;
     line-height: 16px;
-    width: 60%;
+    width: 47%;
     margin: auto;
     padding-top: 20px;
 }
@@ -60,7 +59,6 @@ pre {
     font-weight: 400;
     line-height: 18.5714px;
     background: #efefef;
-    /* border: 2px solid black; */
     width: 40%;
     margin: 1px auto;
     padding: 10px 20px;
