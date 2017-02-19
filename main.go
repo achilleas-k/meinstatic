@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
@@ -92,6 +93,11 @@ func gravatar(username string) {
 	checkError(err)
 }
 
+func filenameNoExt(fname string) string {
+	fname = filepath.Base(fname)
+	return strings.TrimSuffix(fname, filepath.Ext(fname))
+}
+
 func main() {
 	mdfiles, err := filepath.Glob("pages/*.md")
 	checkError(err)
@@ -103,6 +109,7 @@ func main() {
 		checkError(err)
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-		err = ioutil.WriteFile("file.html", makeHTML(safe), 0660)
+		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
+		err = ioutil.WriteFile(outName, makeHTML(safe), 0660)
 	}
 }
