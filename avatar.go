@@ -82,5 +82,5 @@ func getAvatar(conf map[string]interface{}) {
 			checkError(err)
 		}
 	}
-	fmt.Printf("Found profile picture [%s]. Will not download.\n", imgpath)
+	fmt.Printf("Found profile picture [%s]\n", imgpath)
 }

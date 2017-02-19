@@ -82,10 +82,7 @@ func createDirs(conf map[string]interface{}) {
 	}
 }
 
-func main() {
-	conf := loadConfig()
-	createDirs(conf)
-
+func renderPages(conf map[string]interface{}) {
 	mdfiles, err := filepath.Glob(filepath.Join(conf["sourcepagepath"].(string), "*.md"))
 	checkError(err)
 
@@ -97,7 +94,7 @@ func main() {
 		}
 		return ""
 	}
-	fmt.Printf("Generating %d page%s\n", npages, plural(npages))
+	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range mdfiles {
 		fmt.Printf("%d: %s", idx+1, fname)
 		pagemd, err := ioutil.ReadFile(fname)
@@ -110,6 +107,12 @@ func main() {
 		fmt.Printf(" → %s\n", outPath)
 		pageList[idx] = outPath
 	}
+	fmt.Print("Rendering complete.\n\n")
+}
 
+func main() {
+	conf := loadConfig()
+	createDirs(conf)
+	renderPages(conf)
 	getAvatar(conf)
 }
