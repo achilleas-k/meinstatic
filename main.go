@@ -31,16 +31,11 @@ func readTemplate() string {
 	return string(thtml)
 }
 
-func makeHTML(content []byte) []byte {
+func makeHTML(data templateData) []byte {
 	thtml := readTemplate()
 	t, err := template.New("webpage").Parse(thtml)
 	checkError(err)
 	rendered := new(bytes.Buffer)
-	data := struct {
-		Body template.HTML
-	}{
-		Body: template.HTML(string(content)),
-	}
 	err = t.Execute(rendered, data)
 	return rendered.Bytes()
 }
@@ -54,6 +49,7 @@ func loadConfig() map[string]interface{} {
 	config := viper.GetViper()
 	config.SetConfigName("config")
 	config.AddConfigPath(".")
+	config.SetDefault("SiteName", "")
 	config.SetDefault("SourcePagePath", "pages-md")
 	config.SetDefault("DestinationPagePath", "pages-html")
 	config.SetDefault("GravatarUsername", "")
@@ -82,9 +78,19 @@ func createDirs(conf map[string]interface{}) {
 	}
 }
 
+type templateData struct {
+	SiteName template.HTML
+	Body     template.HTML
+}
+
 func renderPages(conf map[string]interface{}) {
 	mdfiles, err := filepath.Glob(filepath.Join(conf["sourcepagepath"].(string), "*.md"))
 	checkError(err)
+
+	sitename := conf["sitename"].(string)
+	var data templateData
+
+	data.SiteName = template.HTML(sitename)
 
 	npages := len(mdfiles)
 	pageList := make([]string, npages)
@@ -99,11 +105,15 @@ func renderPages(conf map[string]interface{}) {
 		fmt.Printf("%d: %s", idx+1, fname)
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
+
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
+		data.Body = template.HTML(string(safe))
+
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
 		outPath := filepath.Join(conf["destinationpagepath"].(string), outName)
-		err = ioutil.WriteFile(outPath, makeHTML(safe), 0666)
+		err = ioutil.WriteFile(outPath, makeHTML(data), 0666)
+
 		fmt.Printf(" → %s\n", outPath)
 		pageList[idx] = outPath
 	}
