@@ -80,7 +80,7 @@ func createDirs(conf map[string]interface{}) {
 
 type templateData struct {
 	SiteName template.HTML
-	Body     template.HTML
+	Body     []template.HTML
 }
 
 func renderPages(conf map[string]interface{}) {
@@ -94,12 +94,14 @@ func renderPages(conf map[string]interface{}) {
 
 	npages := len(mdfiles)
 	pageList := make([]string, npages)
+	data.Body = make([]template.HTML, npages)
 	plural := func(n int) string {
 		if n != 1 {
 			return "s"
 		}
 		return ""
 	}
+
 	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range mdfiles {
 		fmt.Printf("%d: %s", idx+1, fname)
@@ -108,15 +110,20 @@ func renderPages(conf map[string]interface{}) {
 
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-		data.Body = template.HTML(string(safe))
+		data.Body[npages-idx-1] = template.HTML(string(safe))
 
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
 		outPath := filepath.Join(conf["destinationpagepath"].(string), outName)
-		err = ioutil.WriteFile(outPath, makeHTML(data), 0666)
+		// err = ioutil.WriteFile(outPath, makeHTML(data), 0666)
+		checkError(err)
 
 		fmt.Printf(" → %s\n", outPath)
 		pageList[idx] = outPath
 	}
+	outPath := filepath.Join(conf["destinationpagepath"].(string), "posts.html")
+	fmt.Printf("Saving posts: %s\n", outPath)
+	err = ioutil.WriteFile(outPath, makeHTML(data), 0666)
+	checkError(err)
 	fmt.Print("Rendering complete.\n\n")
 }
 

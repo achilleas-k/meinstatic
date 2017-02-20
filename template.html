@@ -12,6 +12,6 @@
         <nav>
             <a href="#">Posts</a><a href="#">About</a><a href="#">Contact</a>
         </nav>
-        {{.Body}}
+        {{range .Body}}{{.}}{{end}}
     </body>
 </html>
