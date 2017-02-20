@@ -77,16 +77,19 @@ a {
     font-family: "sans-serif";
     color: #217AC0;
     text-decoration: none;
+    padding: 1px;
+    border-radius: 3px;
 }
 nav a {
     border-width: 20px;
     margin: 10px;
     padding: 10px;
     display: inline;
-}
-nav a:hover {
     border-radius: 5px;
-    background: #efefef;
+}
+a:hover {
+    background: #707070;
+    color: #ffffff;
 }
 div.site-title {
     font-family: "serif";
