@@ -17,9 +17,8 @@ import (
 )
 
 type templateData struct {
-	SiteName  template.HTML
-	Body      []template.HTML
-	StyleFile string
+	SiteName template.HTML
+	Body     []template.HTML
 }
 
 func checkError(err error) {
@@ -100,18 +99,22 @@ func createDirs(conf map[string]interface{}) {
 }
 
 func renderPages(conf map[string]interface{}) {
-	mdfiles, err := filepath.Glob(filepath.Join(conf["sourcepostspath"].(string), "*.md"))
+	pagesmd, err := filepath.Glob(filepath.Join(conf["sourcepath"].(string), "*.md"))
 	checkError(err)
+	postfiles, err := filepath.Glob(filepath.Join(conf["sourcepath"].(string), "posts", "*.md"))
+	checkError(err)
+
+	pagesmd = append(pagesmd, postfiles...)
 
 	sitename := conf["sitename"].(string)
 	var data templateData
 
 	data.SiteName = template.HTML(sitename)
-	data.StyleFile = conf["stylefile"].(string)
+	stylefile := conf["stylefile"].(string)
 
-	npages := len(mdfiles)
-	pageList := make([]string, npages)
-	data.Body = make([]template.HTML, npages)
+	nposts := len(pagesmd)
+	postList := make([]string, nposts)
+	data.Body = make([]template.HTML, nposts)
 	plural := func(n int) string {
 		if n != 1 {
 			return "s"
@@ -121,30 +124,30 @@ func renderPages(conf map[string]interface{}) {
 
 	destPath := conf["destinationpath"].(string)
 	templateFile := conf["pagetemplatefile"].(string)
-	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
-	for idx, fname := range mdfiles {
+	fmt.Printf("Rendering %d posts%s\n", nposts, plural(nposts))
+	for idx, fname := range pagesmd {
 		fmt.Printf("%d: %s", idx+1, fname)
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
 
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-		data.Body[npages-idx-1] = template.HTML(string(safe))
+		data.Body[nposts-idx-1] = template.HTML(string(safe))
 
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
 		outPath := filepath.Join(destPath, outName)
-		// err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
-		// checkError(err)
+		err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
+		checkError(err)
 
 		fmt.Printf(" → %s\n", outPath)
-		pageList[idx] = outPath
+		postList[idx] = outPath
 	}
-	outPath := filepath.Join(destPath, "posts.html")
-	fmt.Printf("Saving posts: %s\n", outPath)
-	err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
-	checkError(err)
+	// outPath := filepath.Join(destPath, "posts.html")
+	// fmt.Printf("Saving posts: %s\n", outPath)
+	// err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
+	// checkError(err)
 	fmt.Println("Copying resources")
-	err = copyFile(data.StyleFile, path.Join(destPath, "res", "style.css"))
+	err = copyFile(stylefile, path.Join(destPath, "res", "style.css"))
 	checkError(err)
 	fmt.Print("Rendering complete.\n\n")
 }
