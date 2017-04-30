@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,18 +22,26 @@ func checkError(err error) {
 	}
 }
 
+func copyFile(srcName, dstName string) error {
+	data, err := ioutil.ReadFile(srcName)
+	if err != nil {
+		return nil
+	}
+	return ioutil.WriteFile(dstName, data, 0666)
+}
+
 func makeBody(body []byte) []byte {
 	return []byte(fmt.Sprintf("<body>%s</body>", body))
 }
 
-func readTemplate() string {
-	thtml, err := ioutil.ReadFile("template.html")
+func readTemplate(templateFile string) string {
+	thtml, err := ioutil.ReadFile(templateFile)
 	checkError(err)
 	return string(thtml)
 }
 
-func makeHTML(data templateData) []byte {
-	thtml := readTemplate()
+func makeHTML(data templateData, templateFile string) []byte {
+	thtml := readTemplate(templateFile)
 	t, err := template.New("webpage").Parse(thtml)
 	checkError(err)
 	rendered := new(bytes.Buffer)
@@ -55,8 +64,8 @@ func loadConfig() map[string]interface{} {
 	config.SetDefault("GravatarUsername", "")
 	config.SetDefault("GravatarEmail", "")
 	config.SetDefault("ImagePath", "images")
-	config.SetDefault("PageTemplateFile", "template.html")
-	config.SetDefault("StyleFile", "style.css")
+	config.SetDefault("PageTemplateFile", "res/template.html")
+	config.SetDefault("StyleFile", "res/style.css")
 	err := config.ReadInConfig()
 	if err != nil && !strings.Contains(err.Error(), "Not Found") {
 		checkError(err)
@@ -76,11 +85,18 @@ func createDirs(conf map[string]interface{}) {
 	if !os.IsExist(err) {
 		checkError(err)
 	}
+
+	resPath := path.Join(destPath, "res")
+	err = os.Mkdir(resPath, 0777)
+	if !os.IsExist(err) {
+		checkError(err)
+	}
 }
 
 type templateData struct {
-	SiteName template.HTML
-	Body     []template.HTML
+	SiteName  template.HTML
+	Body      []template.HTML
+	StyleFile string
 }
 
 func renderPages(conf map[string]interface{}) {
@@ -91,6 +107,7 @@ func renderPages(conf map[string]interface{}) {
 	var data templateData
 
 	data.SiteName = template.HTML(sitename)
+	data.StyleFile = conf["stylefile"].(string)
 
 	npages := len(mdfiles)
 	pageList := make([]string, npages)
@@ -102,6 +119,7 @@ func renderPages(conf map[string]interface{}) {
 		return ""
 	}
 
+	destPath := conf["destinationpagepath"].(string)
 	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range mdfiles {
 		fmt.Printf("%d: %s", idx+1, fname)
@@ -113,16 +131,19 @@ func renderPages(conf map[string]interface{}) {
 		data.Body[npages-idx-1] = template.HTML(string(safe))
 
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
-		outPath := filepath.Join(conf["destinationpagepath"].(string), outName)
-		// err = ioutil.WriteFile(outPath, makeHTML(data), 0666)
+		outPath := filepath.Join(destPath, outName)
 		checkError(err)
 
 		fmt.Printf(" → %s\n", outPath)
 		pageList[idx] = outPath
 	}
-	outPath := filepath.Join(conf["destinationpagepath"].(string), "posts.html")
+	outPath := filepath.Join(destPath, "posts.html")
+	templateFile := conf["pagetemplatefile"].(string)
 	fmt.Printf("Saving posts: %s\n", outPath)
-	err = ioutil.WriteFile(outPath, makeHTML(data), 0666)
+	err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
+	checkError(err)
+	fmt.Println("Copying resources")
+	err = copyFile(data.StyleFile, path.Join(destPath, "res", "style.css"))
 	checkError(err)
 	fmt.Print("Rendering complete.\n\n")
 }
