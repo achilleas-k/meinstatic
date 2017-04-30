@@ -114,7 +114,7 @@ func renderPages(conf map[string]interface{}) {
 
 	nposts := len(pagesmd)
 	postList := make([]string, nposts)
-	data.Body = make([]template.HTML, nposts)
+	data.Body = make([]template.HTML, 1)
 	plural := func(n int) string {
 		if n != 1 {
 			return "s"
@@ -132,7 +132,9 @@ func renderPages(conf map[string]interface{}) {
 
 		unsafe := blackfriday.MarkdownCommon(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-		data.Body[nposts-idx-1] = template.HTML(string(safe))
+		// reverse render posts
+		// data.Body[nposts-idx-1] = template.HTML(string(safe))
+		data.Body[0] = template.HTML(string(safe))
 
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
 		outPath := filepath.Join(destPath, outName)
