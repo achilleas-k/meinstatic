@@ -8,9 +8,9 @@
         <link rel="stylesheet" href="res/style.css">
     </head>
     <body>
-        <div class=site-title>~{{.SiteName}}</div>
+        <div class=site-title>{{.SiteName}}</div>
         <nav>
-            <a href="#">Posts</a><a href="#">About</a><a href="#">Contact</a>
+            <a href="/">Posts</a><a href="about.html">About</a><a href="contact.html">Contact</a>
         </nav>
         {{range .Body}}{{.}}{{end}}
     </body>
