@@ -16,6 +16,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+type templateData struct {
+	SiteName  template.HTML
+	Body      []template.HTML
+	StyleFile string
+}
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -59,11 +65,11 @@ func loadConfig() map[string]interface{} {
 	config.SetConfigName("config")
 	config.AddConfigPath(".")
 	config.SetDefault("SiteName", "")
-	config.SetDefault("SourcePagePath", "pages-md")
-	config.SetDefault("DestinationPagePath", "pages-html")
+	config.SetDefault("SourcePath", "pages-md")
+	config.SetDefault("SourcePostsPath", "pages-md/posts")
+	config.SetDefault("DestinationPath", "html")
 	config.SetDefault("GravatarUsername", "")
 	config.SetDefault("GravatarEmail", "")
-	config.SetDefault("ImagePath", "images")
 	config.SetDefault("PageTemplateFile", "res/template.html")
 	config.SetDefault("StyleFile", "res/style.css")
 	err := config.ReadInConfig()
@@ -74,13 +80,13 @@ func loadConfig() map[string]interface{} {
 }
 
 func createDirs(conf map[string]interface{}) {
-	destPath := conf["destinationpagepath"].(string)
+	destPath := conf["destinationpath"].(string)
 	err := os.Mkdir(destPath, 0777)
 	if !os.IsExist(err) {
 		checkError(err)
 	}
 
-	imagePath := conf["imagepath"].(string)
+	imagePath := path.Join(conf["destinationpath"].(string), "images")
 	err = os.Mkdir(imagePath, 0777)
 	if !os.IsExist(err) {
 		checkError(err)
@@ -93,14 +99,8 @@ func createDirs(conf map[string]interface{}) {
 	}
 }
 
-type templateData struct {
-	SiteName  template.HTML
-	Body      []template.HTML
-	StyleFile string
-}
-
 func renderPages(conf map[string]interface{}) {
-	mdfiles, err := filepath.Glob(filepath.Join(conf["sourcepagepath"].(string), "*.md"))
+	mdfiles, err := filepath.Glob(filepath.Join(conf["sourcepostspath"].(string), "*.md"))
 	checkError(err)
 
 	sitename := conf["sitename"].(string)
@@ -119,7 +119,8 @@ func renderPages(conf map[string]interface{}) {
 		return ""
 	}
 
-	destPath := conf["destinationpagepath"].(string)
+	destPath := conf["destinationpath"].(string)
+	templateFile := conf["pagetemplatefile"].(string)
 	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range mdfiles {
 		fmt.Printf("%d: %s", idx+1, fname)
@@ -132,13 +133,13 @@ func renderPages(conf map[string]interface{}) {
 
 		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
 		outPath := filepath.Join(destPath, outName)
-		checkError(err)
+		// err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
+		// checkError(err)
 
 		fmt.Printf(" → %s\n", outPath)
 		pageList[idx] = outPath
 	}
 	outPath := filepath.Join(destPath, "posts.html")
-	templateFile := conf["pagetemplatefile"].(string)
 	fmt.Printf("Saving posts: %s\n", outPath)
 	err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
 	checkError(err)
