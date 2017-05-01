@@ -161,6 +161,7 @@ func copyResources(conf map[string]interface{}) {
 		if err != nil {
 			return err
 		}
+		// TODO: Skip hidden files and dirs
 		if info.Mode().IsRegular() {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("%s → %s\n", srcloc, dstloc)
