@@ -158,6 +158,9 @@ func copyResources(conf map[string]interface{}) {
 	fmt.Println("\nCopying resources")
 	dstroot := conf["destinationpath"].(string)
 	walker := func(srcloc string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if info.Mode().IsRegular() {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("%s → %s\n", srcloc, dstloc)
