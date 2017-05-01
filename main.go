@@ -112,8 +112,8 @@ func renderPages(conf map[string]interface{}) {
 	data.SiteName = template.HTML(sitename)
 	stylefile := conf["stylefile"].(string)
 
-	nposts := len(pagesmd)
-	postList := make([]string, nposts)
+	npages := len(pagesmd)
+	pagelist := make([]string, npages)
 	data.Body = make([]template.HTML, 1)
 	plural := func(n int) string {
 		if n != 1 {
@@ -124,7 +124,7 @@ func renderPages(conf map[string]interface{}) {
 
 	destPath := conf["destinationpath"].(string)
 	templateFile := conf["pagetemplatefile"].(string)
-	fmt.Printf("Rendering %d posts%s\n", nposts, plural(nposts))
+	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range pagesmd {
 		fmt.Printf("%d: %s", idx+1, fname)
 		pagemd, err := ioutil.ReadFile(fname)
@@ -142,7 +142,7 @@ func renderPages(conf map[string]interface{}) {
 		checkError(err)
 
 		fmt.Printf(" → %s\n", outPath)
-		postList[idx] = outPath
+		pagelist[idx] = outPath
 	}
 	// outPath := filepath.Join(destPath, "posts.html")
 	// fmt.Printf("Saving posts: %s\n", outPath)
