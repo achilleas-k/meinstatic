@@ -74,6 +74,8 @@ func getAvatar(conf map[string]interface{}) {
 			gravatarID = gravatarUser
 		} else if gravatarEmail != "" {
 			gravatarID = emailToGravID(gravatarEmail)
+		} else {
+			return
 		}
 		if gravatarID != "" {
 			avatar := gravatar(gravatarID)
