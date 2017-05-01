@@ -64,7 +64,7 @@ func emailToGravID(email string) string {
 }
 
 func getAvatar(conf map[string]interface{}) {
-	imgpath := filepath.Join(conf["destinationpath"].(string), "images", "avatar.jpg")
+	imgpath := filepath.Join(conf["destinationpath"].(string), "res", "avatar.jpg")
 
 	if _, err := os.Stat(imgpath); os.IsNotExist(err) {
 		gravatarUser := conf["gravatarusername"].(string)

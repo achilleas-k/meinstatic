@@ -69,7 +69,8 @@ func loadConfig() map[string]interface{} {
 	config.SetDefault("DestinationPath", "html")
 	config.SetDefault("GravatarUsername", "")
 	config.SetDefault("GravatarEmail", "")
-	config.SetDefault("PageTemplateFile", "res/template.html")
+	config.SetDefault("PageTemplateFile", "templates/template.html")
+	config.SetDefault("ResourcePath", "res")
 	config.SetDefault("StyleFile", "res/style.css")
 	err := config.ReadInConfig()
 	if err != nil && !strings.Contains(err.Error(), "Not Found") {
@@ -110,7 +111,7 @@ func renderPages(conf map[string]interface{}) {
 	var data templateData
 
 	data.SiteName = template.HTML(sitename)
-	stylefile := conf["stylefile"].(string)
+	// stylefile := conf["stylefile"].(string)
 
 	npages := len(pagesmd)
 	pagelist := make([]string, npages)
@@ -148,10 +149,26 @@ func renderPages(conf map[string]interface{}) {
 	// fmt.Printf("Saving posts: %s\n", outPath)
 	// err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
 	// checkError(err)
-	fmt.Println("Copying resources")
-	err = copyFile(stylefile, path.Join(destPath, "res", "style.css"))
-	checkError(err)
 	fmt.Print("Rendering complete.\n\n")
+}
+
+// copyResources copies all files from the configured resource directory
+// to the "res" subdirectory under the destination path.
+func copyResources(conf map[string]interface{}) {
+	fmt.Println("\nCopying resources")
+	dstroot := conf["destinationpath"].(string)
+	walker := func(srcloc string, info os.FileInfo, err error) error {
+		if info.Mode().IsRegular() {
+			dstloc := path.Join(dstroot, srcloc)
+			fmt.Printf("%s → %s\n", srcloc, dstloc)
+			copyFile(srcloc, dstloc)
+		}
+		return nil
+	}
+
+	err := filepath.Walk(conf["resourcepath"].(string), walker)
+	checkError(err)
+	fmt.Println("Done!")
 }
 
 func main() {
@@ -159,4 +176,5 @@ func main() {
 	createDirs(conf)
 	renderPages(conf)
 	getAvatar(conf)
+	copyResources(conf)
 }
