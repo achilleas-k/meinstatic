@@ -29,9 +29,7 @@ func checkError(err error) {
 
 func copyFile(srcName, dstName string) error {
 	data, err := ioutil.ReadFile(srcName)
-	if err != nil {
-		return nil
-	}
+	checkError(err)
 	return ioutil.WriteFile(dstName, data, 0666)
 }
 
@@ -166,6 +164,10 @@ func copyResources(conf map[string]interface{}) {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("%s → %s\n", srcloc, dstloc)
 			copyFile(srcloc, dstloc)
+		} else if info.Mode().IsDir() {
+			dstloc := path.Join(dstroot, srcloc)
+			fmt.Printf("Creating directory %s\n", dstloc)
+			os.Mkdir(dstloc, 0777)
 		}
 		return nil
 	}
