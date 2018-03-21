@@ -49,6 +49,7 @@ func makeHTML(data templateData, templateFile string) []byte {
 	checkError(err)
 	rendered := new(bytes.Buffer)
 	err = t.Execute(rendered, data)
+	checkError(err)
 	return rendered.Bytes()
 }
 
