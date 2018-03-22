@@ -53,24 +53,17 @@ func makeHTML(data templateData, templateFile string) []byte {
 	return rendered.Bytes()
 }
 
-func filenameNoExt(fname string) string {
-	fname = filepath.Base(fname)
-	return strings.TrimSuffix(fname, filepath.Ext(fname))
-}
-
 func loadConfig() map[string]interface{} {
 	config := viper.GetViper()
 	config.SetConfigName("config")
 	config.AddConfigPath(".")
 	config.SetDefault("SiteName", "")
 	config.SetDefault("SourcePath", "pages-md")
-	config.SetDefault("SourcePostsPath", "pages-md/posts")
 	config.SetDefault("DestinationPath", "html")
 	config.SetDefault("GravatarUsername", "")
 	config.SetDefault("GravatarEmail", "")
 	config.SetDefault("PageTemplateFile", "templates/template.html")
 	config.SetDefault("ResourcePath", "res")
-	config.SetDefault("StyleFile", "res/style.css")
 	err := config.ReadInConfig()
 	if err != nil && !strings.Contains(err.Error(), "Not Found") {
 		checkError(err)
@@ -79,38 +72,41 @@ func loadConfig() map[string]interface{} {
 }
 
 func createDirs(conf map[string]interface{}) {
-	destPath := conf["destinationpath"].(string)
-	err := os.Mkdir(destPath, 0777)
+	destpath := conf["destinationpath"].(string)
+	err := os.Mkdir(destpath, 0777)
 	if !os.IsExist(err) {
 		checkError(err)
 	}
 
-	imagePath := path.Join(conf["destinationpath"].(string), "images")
-	err = os.Mkdir(imagePath, 0777)
+	imagepath := path.Join(conf["destinationpath"].(string), "images")
+	err = os.Mkdir(imagepath, 0777)
 	if !os.IsExist(err) {
 		checkError(err)
 	}
 
-	resPath := path.Join(destPath, "res")
-	err = os.Mkdir(resPath, 0777)
+	respath := path.Join(destpath, "res")
+	err = os.Mkdir(respath, 0777)
 	if !os.IsExist(err) {
 		checkError(err)
 	}
 }
 
 func renderPages(conf map[string]interface{}) {
-	pagesmd, err := filepath.Glob(filepath.Join(conf["sourcepath"].(string), "*.md"))
-	checkError(err)
-	postfiles, err := filepath.Glob(filepath.Join(conf["sourcepath"].(string), "posts", "*.md"))
-	checkError(err)
+	srcpath := conf["sourcepath"].(string)
 
-	pagesmd = append(pagesmd, postfiles...)
+	var pagesmd []string
+	mdfinder := func(path string, info os.FileInfo, err error) error {
+		if filepath.Ext(path) == ".md" {
+			pagesmd = append(pagesmd, path)
+		}
+		return nil
+	}
+	filepath.Walk(srcpath, mdfinder)
 
 	sitename := conf["sitename"].(string)
 	var data templateData
 
 	data.SiteName = template.HTML(sitename)
-	// stylefile := conf["stylefile"].(string)
 
 	npages := len(pagesmd)
 	pagelist := make([]string, npages)
@@ -122,7 +118,7 @@ func renderPages(conf map[string]interface{}) {
 		return ""
 	}
 
-	destPath := conf["destinationpath"].(string)
+	destpath := conf["destinationpath"].(string)
 	templateFile := conf["pagetemplatefile"].(string)
 	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range pagesmd {
@@ -136,17 +132,28 @@ func renderPages(conf map[string]interface{}) {
 		// data.Body[nposts-idx-1] = template.HTML(string(safe))
 		data.Body[0] = template.HTML(string(safe))
 
-		outName := fmt.Sprintf("%s.html", filenameNoExt(fname))
-		outPath := filepath.Join(destPath, outName)
-		err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
+		// trim source path
+		outpath := strings.TrimPrefix(fname, srcpath)
+		// trim extension (and replace with .html)
+		outpath = strings.TrimSuffix(outpath, ".md")
+		outpath = fmt.Sprintf("%s.html", outpath)
+		outpath = filepath.Join(destpath, outpath)
+
+		// make potential parent directory
+		outpathpar, _ := filepath.Split(outpath)
+		if outpathpar != destpath {
+			os.MkdirAll(outpathpar, 0777)
+		}
+
+		err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)
 
-		fmt.Printf(" → %s\n", outPath)
-		pagelist[idx] = outPath
+		fmt.Printf(" → %s\n", outpath)
+		pagelist[idx] = outpath
 	}
-	// outPath := filepath.Join(destPath, "posts.html")
-	// fmt.Printf("Saving posts: %s\n", outPath)
-	// err = ioutil.WriteFile(outPath, makeHTML(data, templateFile), 0666)
+	// outpath := filepath.Join(destpath, "posts.html")
+	// fmt.Printf("Saving posts: %s\n", outpath)
+	// err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 	// checkError(err)
 	fmt.Print("Rendering complete.\n\n")
 }
