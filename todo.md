@@ -1,0 +1,5 @@
+- Dates on each post
+- Non post pages: about, contact
+- Global footer
+- Handle relative paths in template (for res stuff)
+- Skip hidden files and dirs in copyResources()

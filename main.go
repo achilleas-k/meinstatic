@@ -44,7 +44,6 @@ func readTemplate(templateFile string) string {
 }
 
 func makeHTML(data templateData, templateFile string) []byte {
-	// TODO: Handle relative paths in template (for res stuff)
 	thtml := readTemplate(templateFile)
 	t, err := template.New("webpage").Parse(thtml)
 	checkError(err)
@@ -168,7 +167,6 @@ func copyResources(conf map[string]interface{}) {
 		if err != nil {
 			return err
 		}
-		// TODO: Skip hidden files and dirs
 		if info.Mode().IsRegular() {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("%s → %s\n", srcloc, dstloc)
