@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -14,6 +15,12 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 	"github.com/spf13/viper"
+)
+
+var (
+	build  string
+	commit string
+	verstr string
 )
 
 type templateData struct {
@@ -184,7 +191,26 @@ func copyResources(conf map[string]interface{}) {
 	fmt.Println("Done!")
 }
 
+func printversion() {
+	fmt.Println(verstr)
+}
+
+func init() {
+	if build == "" {
+		verstr = "meinstatic [dev build]"
+	} else {
+		verstr = fmt.Sprintf("meinstatic Build %s (%s)", build, commit)
+	}
+}
+
 func main() {
+	var printver bool
+	flag.BoolVar(&printver, "version", false, "print version number")
+	flag.Parse()
+	if printver {
+		printversion()
+		return
+	}
 	conf := loadConfig()
 	createDirs(conf)
 	renderPages(conf)
