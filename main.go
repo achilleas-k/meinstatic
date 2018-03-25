@@ -44,6 +44,7 @@ func readTemplate(templateFile string) string {
 }
 
 func makeHTML(data templateData, templateFile string) []byte {
+	// TODO: Handle relative paths in template (for res stuff)
 	thtml := readTemplate(templateFile)
 	t, err := template.New("webpage").Parse(thtml)
 	checkError(err)
