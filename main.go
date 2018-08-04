@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/russross/blackfriday"
 	"github.com/spf13/viper"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 var (
@@ -98,6 +98,29 @@ func createDirs(conf map[string]interface{}) {
 	}
 }
 
+type post struct {
+	date    string // TODO: Change to datetime
+	title   string
+	summary string
+}
+
+func parsePost(mdsource []byte) (p post) {
+	md := blackfriday.New()
+	rootnode := md.Parse(mdsource)
+	visitor := func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+		if node.Parent != nil && node.Parent.Type == blackfriday.Heading && node.Parent.Level == 1 && p.title == "" {
+			p.title = node.String()
+		} else if node.Parent != nil && node.Parent.Type == blackfriday.Paragraph {
+			// Found first paragraph
+			p.summary = string(node.Literal)
+			return blackfriday.Terminate
+		}
+		return blackfriday.GoToNext
+	}
+	rootnode.Walk(visitor)
+	return
+}
+
 func renderPages(conf map[string]interface{}) {
 	srcpath := conf["sourcepath"].(string)
 
@@ -125,6 +148,9 @@ func renderPages(conf map[string]interface{}) {
 		return ""
 	}
 
+	nposts := 0
+	postlisting := make([]post, 0, npages)
+
 	destpath := conf["destinationpath"].(string)
 	templateFile := conf["pagetemplatefile"].(string)
 	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
@@ -133,7 +159,11 @@ func renderPages(conf map[string]interface{}) {
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
 
-		unsafe := blackfriday.MarkdownCommon(pagemd)
+		if strings.Contains(fname, "post") {
+			postlisting = append(postlisting, parsePost(pagemd))
+			nposts++
+		}
+		unsafe := blackfriday.Run(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		// reverse render posts
 		// data.Body[nposts-idx-1] = template.HTML(string(safe))
@@ -155,8 +185,12 @@ func renderPages(conf map[string]interface{}) {
 		err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)
 
-		fmt.Printf(" → %s\n", outpath)
+		fmt.Printf(" -> %s\n", outpath)
 		pagelist[idx] = outpath
+	}
+	fmt.Printf("Found %d posts\n", nposts)
+	for idx, p := range postlisting {
+		fmt.Printf("  %d: %s (%s)\n", idx, p.title, p.summary)
 	}
 	// outpath := filepath.Join(destpath, "posts.html")
 	// fmt.Printf("Saving posts: %s\n", outpath)
@@ -176,7 +210,7 @@ func copyResources(conf map[string]interface{}) {
 		}
 		if info.Mode().IsRegular() {
 			dstloc := path.Join(dstroot, srcloc)
-			fmt.Printf("%s → %s\n", srcloc, dstloc)
+			fmt.Printf("%s -> %s\n", srcloc, dstloc)
 			copyFile(srcloc, dstloc)
 		} else if info.Mode().IsDir() {
 			dstloc := path.Join(dstroot, srcloc)
