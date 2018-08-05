@@ -197,7 +197,7 @@ func renderPages(conf map[string]interface{}) {
 	if nposts > 0 {
 		var bodystr string
 		for idx, p := range postlisting {
-			bodystr = fmt.Sprintf("%s%d. [%s](%s) (%s)\n", bodystr, idx, p.title, p.url, p.summary)
+			bodystr = fmt.Sprintf("%s%d. [%s](%s) %s\n", bodystr, idx, p.title, p.url, p.summary)
 		}
 		unsafe := blackfriday.Run([]byte(bodystr))
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
