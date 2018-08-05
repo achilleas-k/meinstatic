@@ -25,7 +25,7 @@ var (
 
 type templateData struct {
 	SiteName template.HTML
-	Body     []template.HTML
+	Body     template.HTML
 }
 
 func checkError(err error) {
@@ -141,7 +141,6 @@ func renderPages(conf map[string]interface{}) {
 
 	npages := len(pagesmd)
 	pagelist := make([]string, npages)
-	data.Body = make([]template.HTML, 1)
 	plural := func(n int) string {
 		if n != 1 {
 			return "s"
@@ -164,7 +163,7 @@ func renderPages(conf map[string]interface{}) {
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		// reverse render posts
 		// data.Body[nposts-idx-1] = template.HTML(string(safe))
-		data.Body[0] = template.HTML(string(safe))
+		data.Body = template.HTML(string(safe))
 
 		// trim source path
 		outpath := strings.TrimPrefix(fname, srcpath)
@@ -184,7 +183,7 @@ func renderPages(conf map[string]interface{}) {
 
 		if strings.Contains(fname, "post") {
 			p := parsePost(pagemd)
-			p.url = strings.TrimPrefix(outpath, destpath+"/")
+			p.url = strings.TrimPrefix(outpath, destpath)
 			postlisting = append(postlisting, p)
 			nposts++
 		}
@@ -196,13 +195,13 @@ func renderPages(conf map[string]interface{}) {
 	// render to listing page
 
 	if nposts > 0 {
-		data.Body = make([]template.HTML, nposts)
+		var bodystr string
 		for idx, p := range postlisting {
-			item := fmt.Sprintf("%d. [%s](%s) (%s)", idx, p.title, p.url, p.summary)
-			unsafe := blackfriday.Run([]byte(item))
-			safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-			data.Body[idx] = template.HTML(string(safe))
+			bodystr = fmt.Sprintf("%s%d. [%s](%s) (%s)\n", bodystr, idx, p.title, p.url, p.summary)
 		}
+		unsafe := blackfriday.Run([]byte(bodystr))
+		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
+		data.Body = template.HTML(string(safe))
 		outpath := filepath.Join(destpath, "posts.html")
 		fmt.Printf("Saving posts: %s\n", outpath)
 		err := ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
