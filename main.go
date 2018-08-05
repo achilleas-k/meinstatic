@@ -102,6 +102,7 @@ type post struct {
 	date    string // TODO: Change to datetime
 	title   string
 	summary string
+	url     string
 }
 
 func parsePost(mdsource []byte) (p post) {
@@ -109,7 +110,7 @@ func parsePost(mdsource []byte) (p post) {
 	rootnode := md.Parse(mdsource)
 	visitor := func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		if node.Parent != nil && node.Parent.Type == blackfriday.Heading && node.Parent.Level == 1 && p.title == "" {
-			p.title = node.String()
+			p.title = string(node.Literal)
 		} else if node.Parent != nil && node.Parent.Type == blackfriday.Paragraph {
 			// Found first paragraph
 			p.summary = string(node.Literal)
@@ -159,10 +160,6 @@ func renderPages(conf map[string]interface{}) {
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
 
-		if strings.Contains(fname, "post") {
-			postlisting = append(postlisting, parsePost(pagemd))
-			nposts++
-		}
 		unsafe := blackfriday.Run(pagemd)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		// reverse render posts
@@ -185,17 +182,32 @@ func renderPages(conf map[string]interface{}) {
 		err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)
 
+		if strings.Contains(fname, "post") {
+			p := parsePost(pagemd)
+			p.url = strings.TrimPrefix(outpath, destpath+"/")
+			postlisting = append(postlisting, p)
+			nposts++
+		}
+
 		fmt.Printf(" -> %s\n", outpath)
 		pagelist[idx] = outpath
 	}
 	fmt.Printf("Found %d posts\n", nposts)
-	for idx, p := range postlisting {
-		fmt.Printf("  %d: %s (%s)\n", idx, p.title, p.summary)
+	// render to listing page
+
+	if nposts > 0 {
+		data.Body = make([]template.HTML, nposts)
+		for idx, p := range postlisting {
+			item := fmt.Sprintf("%d. [%s](%s) (%s)", idx, p.title, p.url, p.summary)
+			unsafe := blackfriday.Run([]byte(item))
+			safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
+			data.Body[idx] = template.HTML(string(safe))
+		}
+		outpath := filepath.Join(destpath, "posts.html")
+		fmt.Printf("Saving posts: %s\n", outpath)
+		err := ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
+		checkError(err)
 	}
-	// outpath := filepath.Join(destpath, "posts.html")
-	// fmt.Printf("Saving posts: %s\n", outpath)
-	// err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
-	// checkError(err)
 	fmt.Print("Rendering complete.\n\n")
 }
 
