@@ -1,12 +1,11 @@
 # Meinstatic
 
-Static website generator. Very simple. Very incomplete. Very inflexible.
+Static website and blog generator.  Very simple.  Very incomplete.  Very inflexible.
 
 ## Features
 
-- Pages are written in markdown.
-- Fetches profile picture from Gravatar.
+- Renders markdown pages into a fixed html template.
 
 ## Planned features
 
-`¯\_(ツ)_/¯`
+See [TODO](todo.md) file.
