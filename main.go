@@ -26,6 +26,9 @@ var (
 type templateData struct {
 	SiteName template.HTML
 	Body     template.HTML
+	// RelRoot is a relative path prefix that points to the root of the HTML destination directory.
+	// It can be used to make relative links to pages and resources.
+	RelRoot string
 }
 
 func checkError(err error) {
@@ -168,7 +171,7 @@ func renderPages(conf map[string]interface{}) {
 		// trim source path
 		outpath := strings.TrimPrefix(fname, srcpath)
 		// trim extension (and replace with .html)
-		outpath = strings.TrimSuffix(outpath, ".md")
+		outpath = strings.TrimSuffix(outpath, filepath.Ext(outpath))
 		outpath = fmt.Sprintf("%s.html", outpath)
 		outpath = filepath.Join(destpath, outpath)
 
@@ -177,6 +180,7 @@ func renderPages(conf map[string]interface{}) {
 		if outpathpar != destpath {
 			os.MkdirAll(outpathpar, 0777)
 		}
+		data.RelRoot, _ = filepath.Rel(outpathpar, destpath)
 
 		err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)

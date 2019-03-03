@@ -17,12 +17,6 @@ One quick idea would be to have a template for each directory.  Directories with
 
 Another idea would be to be able to specify the template name in each `.md` file, which the renderer would remove from the text during rendering.  This might lead to having a header with a whole set of metadata for each page, especially for posts.
 
-## Relative paths
-
-I could define variables that can be used in templates and get populated at render time.  For instance a variable can be used in the top menu to specify whether the links should be relative to the web root and add `../` accordingly.  The renderer should detect the depth of the `.md` source file in the source tree.
-
-This feature will make it possible to have a website under a subdirectory rendered using `msblog` and, more importantly, will make rendered pages browsable locally, making development easier.
-
 ## Old items (to review)
 
 - Skip hidden files and dirs in copyResources()
