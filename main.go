@@ -153,9 +153,9 @@ func renderPages(conf map[string]interface{}) {
 
 	destpath := conf["destinationpath"].(string)
 	templateFile := conf["pagetemplatefile"].(string)
-	fmt.Printf("Rendering %d page%s\n", npages, plural(npages))
+	fmt.Printf(":: Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range pagesmd {
-		fmt.Printf("%d: %s", idx+1, fname)
+		fmt.Printf("   %d: %s", idx+1, fname)
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
 
@@ -191,7 +191,7 @@ func renderPages(conf map[string]interface{}) {
 		fmt.Printf(" -> %s\n", outpath)
 		pagelist[idx] = outpath
 	}
-	fmt.Printf("Found %d posts\n", nposts)
+	fmt.Printf(":: Found %d posts\n", nposts)
 	// render to listing page
 
 	if nposts > 0 {
@@ -203,17 +203,17 @@ func renderPages(conf map[string]interface{}) {
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		data.Body = template.HTML(string(safe))
 		outpath := filepath.Join(destpath, "posts.html")
-		fmt.Printf("Saving posts: %s\n", outpath)
+		fmt.Printf("   Saving posts: %s\n", outpath)
 		err := ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)
 	}
-	fmt.Print("Rendering complete.\n\n")
+	fmt.Println(":: Rendering complete!")
 }
 
 // copyResources copies all files from the configured resource directory
 // to the "res" subdirectory under the destination path.
 func copyResources(conf map[string]interface{}) {
-	fmt.Println("\nCopying resources")
+	fmt.Println(":: Copying resources")
 	dstroot := conf["destinationpath"].(string)
 	walker := func(srcloc string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -221,11 +221,11 @@ func copyResources(conf map[string]interface{}) {
 		}
 		if info.Mode().IsRegular() {
 			dstloc := path.Join(dstroot, srcloc)
-			fmt.Printf("%s -> %s\n", srcloc, dstloc)
+			fmt.Printf("   %s -> %s\n", srcloc, dstloc)
 			copyFile(srcloc, dstloc)
 		} else if info.Mode().IsDir() {
 			dstloc := path.Join(dstroot, srcloc)
-			fmt.Printf("Creating directory %s\n", dstloc)
+			fmt.Printf("   Creating directory %s\n", dstloc)
 			os.Mkdir(dstloc, 0777)
 		}
 		return nil
@@ -233,7 +233,7 @@ func copyResources(conf map[string]interface{}) {
 
 	err := filepath.Walk(conf["resourcepath"].(string), walker)
 	checkError(err)
-	fmt.Println("Done!")
+	fmt.Println("== Done ==")
 }
 
 func printversion() {
