@@ -1,6 +1,3 @@
-# full pkg name
-PKG = github.com/achilleas-k/meinstatic
-
 # Binary
 BIN = meinstatic
 
@@ -10,14 +7,11 @@ BUILDLOC = build
 # Install location
 INSTLOC = $(GOPATH)/bin
 
-# tests submodule bin
-TESTBINLOC = tests/bin
-
 # Build flags
 ncommits = $(shell git rev-list --count HEAD)
 BUILDNUM = $(shell printf '%06d' $(ncommits))
 COMMITHASH = $(shell git rev-parse HEAD)
-LDFLAGS = -ldflags=$(PKG)="-X main.build=$(BUILDNUM) -X main.commit=$(COMMITHASH)"
+LDFLAGS = -ldflags="-X main.build=$(BUILDNUM) -X main.commit=$(COMMITHASH)"
 
 SOURCES = $(shell find . -type f -iname "*.go")
 
