@@ -70,8 +70,6 @@ func loadConfig() map[string]interface{} {
 	config.SetDefault("SiteName", "")
 	config.SetDefault("SourcePath", "pages-md")
 	config.SetDefault("DestinationPath", "html")
-	config.SetDefault("GravatarUsername", "")
-	config.SetDefault("GravatarEmail", "")
 	config.SetDefault("PageTemplateFile", "templates/template.html")
 	config.SetDefault("ResourcePath", "res")
 	err := config.ReadInConfig()
@@ -263,6 +261,5 @@ func main() {
 	conf := loadConfig()
 	createDirs(conf)
 	renderPages(conf)
-	getAvatar(conf)
 	copyResources(conf)
 }
