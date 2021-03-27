@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/russross/blackfriday/v2"
 	"github.com/spf13/viper"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 var (
@@ -160,7 +160,8 @@ func renderPages(conf map[string]interface{}) {
 		pagemd, err := ioutil.ReadFile(fname)
 		checkError(err)
 
-		unsafe := blackfriday.Run(pagemd)
+		bfext := blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs)
+		unsafe := blackfriday.Run(pagemd, bfext)
 		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		// reverse render posts
 		// data.Body[nposts-idx-1] = template.HTML(string(safe))
