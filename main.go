@@ -94,15 +94,29 @@ type post struct {
 	url     string
 }
 
+// childLiterals concatenates the literals under a given node into a single
+// string.
+func childLiterals(node *blackfriday.Node) string {
+	var lit string
+	for child := node.FirstChild; child != nil; child = child.Next {
+		if child.IsLeaf() {
+			lit += string(child.Literal)
+		} else {
+			lit += childLiterals(child)
+		}
+	}
+	return lit
+}
+
 func parsePost(mdsource []byte) (p post) {
 	md := blackfriday.New()
 	rootnode := md.Parse(mdsource)
 	visitor := func(node *blackfriday.Node, _ bool) blackfriday.WalkStatus {
-		if node.Parent != nil && node.Parent.Type == blackfriday.Heading && node.Parent.Level == 1 && p.title == "" {
-			p.title = string(node.Literal)
-		} else if node.Parent != nil && node.Parent.Type == blackfriday.Paragraph {
+		if node.Type == blackfriday.Heading && node.Level == 1 && p.title == "" {
+			p.title = childLiterals(node)
+		} else if node.Type == blackfriday.Paragraph {
 			// Found first paragraph
-			p.summary = string(node.Literal)
+			p.summary = childLiterals(node)
 			return blackfriday.Terminate
 		}
 		return blackfriday.GoToNext
