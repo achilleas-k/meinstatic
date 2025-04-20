@@ -183,7 +183,9 @@ func renderPages(conf map[string]interface{}) {
 
 		if strings.Contains(fname, "post") {
 			p := parsePost(pagemd)
-			p.url = strings.TrimPrefix(outpath, destpath)
+			postURL := strings.TrimPrefix(outpath, destpath)
+			postURL = strings.TrimPrefix(postURL, "/") // make it relative
+			p.url = postURL
 			postlisting = append(postlisting, p)
 			nposts++
 		}
