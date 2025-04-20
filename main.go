@@ -192,8 +192,8 @@ func renderPages(conf map[string]interface{}) {
 		pagelist[idx] = outpath
 	}
 	fmt.Printf(":: Found %d posts\n", nposts)
-	// render to listing page
 
+	// render to listing page
 	if nposts > 0 {
 		var bodystr string
 		for idx, p := range postlisting {
