@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -38,9 +37,9 @@ func checkError(err error) {
 }
 
 func copyFile(srcName, dstName string) error {
-	data, err := ioutil.ReadFile(srcName)
+	data, err := os.ReadFile(srcName)
 	checkError(err)
-	return ioutil.WriteFile(dstName, data, 0666)
+	return os.WriteFile(dstName, data, 0666)
 }
 
 func makeBody(body []byte) []byte {
@@ -48,7 +47,7 @@ func makeBody(body []byte) []byte {
 }
 
 func readTemplate(templateFile string) string {
-	thtml, err := ioutil.ReadFile(templateFile)
+	thtml, err := os.ReadFile(templateFile)
 	checkError(err)
 	return string(thtml)
 }
@@ -157,7 +156,7 @@ func renderPages(conf map[string]interface{}) {
 	fmt.Printf(":: Rendering %d page%s\n", npages, plural(npages))
 	for idx, fname := range pagesmd {
 		fmt.Printf("   %d: %s", idx+1, fname)
-		pagemd, err := ioutil.ReadFile(fname)
+		pagemd, err := os.ReadFile(fname)
 		checkError(err)
 
 		bfext := blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs)
@@ -181,7 +180,7 @@ func renderPages(conf map[string]interface{}) {
 		}
 		data.RelRoot, _ = filepath.Rel(outpathpar, destpath)
 
-		err = ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
+		err = os.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)
 
 		if strings.Contains(fname, "post") {
@@ -207,7 +206,7 @@ func renderPages(conf map[string]interface{}) {
 		data.Body = template.HTML(string(safe))
 		outpath := filepath.Join(destpath, "posts.html")
 		fmt.Printf("   Saving posts: %s\n", outpath)
-		err := ioutil.WriteFile(outpath, makeHTML(data, templateFile), 0666)
+		err := os.WriteFile(outpath, makeHTML(data, templateFile), 0666)
 		checkError(err)
 	}
 	fmt.Println(":: Rendering complete!")
