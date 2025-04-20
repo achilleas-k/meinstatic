@@ -42,10 +42,6 @@ func copyFile(srcName, dstName string) error {
 	return os.WriteFile(dstName, data, 0666)
 }
 
-func makeBody(body []byte) []byte {
-	return []byte(fmt.Sprintf("<body>%s</body>", body))
-}
-
 func readTemplate(templateFile string) string {
 	thtml, err := os.ReadFile(templateFile)
 	checkError(err)
