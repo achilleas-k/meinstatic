@@ -76,22 +76,13 @@ func loadConfig() map[string]interface{} {
 
 func createDirs(conf map[string]interface{}) {
 	destpath := conf["destinationpath"].(string)
-	err := os.Mkdir(destpath, 0777)
-	if !os.IsExist(err) {
-		checkError(err)
-	}
+	checkError(os.MkdirAll(destpath, 0777))
 
 	imagepath := path.Join(conf["destinationpath"].(string), "images")
-	err = os.Mkdir(imagepath, 0777)
-	if !os.IsExist(err) {
-		checkError(err)
-	}
+	checkError(os.MkdirAll(imagepath, 0777))
 
 	respath := path.Join(destpath, "res")
-	err = os.Mkdir(respath, 0777)
-	if !os.IsExist(err) {
-		checkError(err)
-	}
+	checkError(os.MkdirAll(respath, 0777))
 }
 
 type post struct {
@@ -228,7 +219,7 @@ func copyResources(conf map[string]interface{}) {
 		} else if info.Mode().IsDir() {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("   Creating directory %s\n", dstloc)
-			checkError(os.Mkdir(dstloc, 0777))
+			checkError(os.MkdirAll(dstloc, 0777))
 		}
 		return nil
 	}
