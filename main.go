@@ -123,12 +123,15 @@ func renderPages(conf map[string]interface{}) {
 
 	var pagesmd []string
 	mdfinder := func(path string, _ os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if filepath.Ext(path) == ".md" {
 			pagesmd = append(pagesmd, path)
 		}
 		return nil
 	}
-	filepath.Walk(srcpath, mdfinder)
+	checkError(filepath.Walk(srcpath, mdfinder))
 
 	sitename := conf["sitename"].(string)
 	var data templateData
@@ -172,12 +175,11 @@ func renderPages(conf map[string]interface{}) {
 		// make potential parent directory
 		outpathpar, _ := filepath.Split(outpath)
 		if outpathpar != destpath {
-			os.MkdirAll(outpathpar, 0777)
+			checkError(os.MkdirAll(outpathpar, 0777))
 		}
 		data.RelRoot, _ = filepath.Rel(outpathpar, destpath)
 
-		err = os.WriteFile(outpath, makeHTML(data, templateFile), 0666)
-		checkError(err)
+		checkError(os.WriteFile(outpath, makeHTML(data, templateFile), 0666))
 
 		if strings.Contains(fname, "post") {
 			p := parsePost(pagemd)
@@ -220,17 +222,16 @@ func copyResources(conf map[string]interface{}) {
 		if info.Mode().IsRegular() {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("   %s -> %s\n", srcloc, dstloc)
-			copyFile(srcloc, dstloc)
+			checkError(copyFile(srcloc, dstloc))
 		} else if info.Mode().IsDir() {
 			dstloc := path.Join(dstroot, srcloc)
 			fmt.Printf("   Creating directory %s\n", dstloc)
-			os.Mkdir(dstloc, 0777)
+			checkError(os.Mkdir(dstloc, 0777))
 		}
 		return nil
 	}
 
-	err := filepath.Walk(conf["resourcepath"].(string), walker)
-	checkError(err)
+	checkError(filepath.Walk(conf["resourcepath"].(string), walker))
 	fmt.Println("== Done ==")
 }
 
