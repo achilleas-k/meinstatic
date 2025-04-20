@@ -207,6 +207,7 @@ func renderPages(conf map[string]interface{}) {
 
 	// render to listing page
 	if nposts > 0 {
+		// TODO: create listing page as ast instead of manually rendering blocks
 		var bodystr string
 		for idx, p := range postlisting {
 			bodystr = fmt.Sprintf("%s%d. [%s](%s) %s\n", bodystr, idx, p.title, p.url, p.summary)
