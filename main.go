@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -67,6 +68,7 @@ func loadConfig() map[string]interface{} {
 	config.SetDefault("DestinationPath", "html")
 	config.SetDefault("PageTemplateFile", "templates/template.html")
 	config.SetDefault("ResourcePath", "res")
+	config.SetDefault("PostPattern", `[0-9]{8}-.*`)
 	err := config.ReadInConfig()
 	if err != nil && !strings.Contains(err.Error(), "Not Found") {
 		checkError(err)
@@ -143,7 +145,10 @@ func renderPages(conf map[string]interface{}) {
 
 	destpath := conf["destinationpath"].(string)
 	templateFile := conf["pagetemplatefile"].(string)
+	postrePattern := conf["postpattern"].(string)
 	fmt.Printf(":: Rendering %d page%s\n", npages, plural(npages))
+	postre, err := regexp.Compile(postrePattern)
+	checkError(err)
 	for idx, fname := range pagesmd {
 		fmt.Printf("   %d: %s", idx+1, fname)
 		pagemd, err := os.ReadFile(fname)
@@ -172,7 +177,7 @@ func renderPages(conf map[string]interface{}) {
 
 		checkError(os.WriteFile(outpath, makeHTML(data, templateFile), 0666))
 
-		if strings.Contains(fname, "post") {
+		if postre.MatchString(fname) {
 			p := parsePost(pagemd)
 			postURL := strings.TrimPrefix(outpath, destpath)
 			postURL = strings.TrimPrefix(postURL, "/") // make it relative
