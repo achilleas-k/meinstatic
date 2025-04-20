@@ -104,7 +104,7 @@ type post struct {
 func parsePost(mdsource []byte) (p post) {
 	md := blackfriday.New()
 	rootnode := md.Parse(mdsource)
-	visitor := func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+	visitor := func(node *blackfriday.Node, _ bool) blackfriday.WalkStatus {
 		if node.Parent != nil && node.Parent.Type == blackfriday.Heading && node.Parent.Level == 1 && p.title == "" {
 			p.title = string(node.Literal)
 		} else if node.Parent != nil && node.Parent.Type == blackfriday.Paragraph {
@@ -122,7 +122,7 @@ func renderPages(conf map[string]interface{}) {
 	srcpath := conf["sourcepath"].(string)
 
 	var pagesmd []string
-	mdfinder := func(path string, info os.FileInfo, err error) error {
+	mdfinder := func(path string, _ os.FileInfo, err error) error {
 		if filepath.Ext(path) == ".md" {
 			pagesmd = append(pagesmd, path)
 		}
