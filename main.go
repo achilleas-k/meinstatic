@@ -59,7 +59,7 @@ func makeHTML(data templateData, templateFile string) []byte {
 	return rendered.Bytes()
 }
 
-func loadConfig() map[string]interface{} {
+func loadConfig() map[string]any {
 	config := viper.GetViper()
 	config.SetConfigName("config")
 	config.AddConfigPath(".")
@@ -76,7 +76,7 @@ func loadConfig() map[string]interface{} {
 	return config.AllSettings()
 }
 
-func createDirs(conf map[string]interface{}) {
+func createDirs(conf map[string]any) {
 	destpath := conf["destinationpath"].(string)
 	checkError(os.MkdirAll(destpath, 0777))
 
@@ -125,7 +125,7 @@ func parsePost(mdsource []byte) (p post) {
 	return
 }
 
-func renderPages(conf map[string]interface{}) {
+func renderPages(conf map[string]any) {
 	srcpath := conf["sourcepath"].(string)
 
 	var pagesmd []string
@@ -225,7 +225,7 @@ func renderPages(conf map[string]interface{}) {
 
 // copyResources copies all files from the configured resource directory
 // to the "res" subdirectory under the destination path.
-func copyResources(conf map[string]interface{}) {
+func copyResources(conf map[string]any) {
 	fmt.Println(":: Copying resources")
 	dstroot := conf["destinationpath"].(string)
 	walker := func(srcloc string, info os.FileInfo, err error) error {
