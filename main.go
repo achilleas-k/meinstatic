@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -11,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/ast"
@@ -100,11 +103,17 @@ func createDirs(conf siteConfig) {
 	checkError(os.MkdirAll(respath, 0777))
 }
 
+type postMetadata struct {
+	DatePosted  time.Time   `json:"posted"`
+	DatesEdited []time.Time `json:"edited"`
+}
+
 type post struct {
-	date    string // TODO: Change to datetime
 	title   string
 	summary string
 	url     string
+
+	metadata *postMetadata
 }
 
 // childLiterals concatenates the literals under a given node into a single
@@ -145,6 +154,25 @@ func parseMD(md []byte) ast.Node {
 	// each Parse call requires a new parser
 	mdparser := parser.NewWithExtensions(parser.CommonExtensions | parser.AutoHeadingIDs)
 	return mdparser.Parse(md)
+}
+
+func readPostMetadata(fname string) *postMetadata {
+	// metadata files are stored next to each post but with the .meta.json extension
+	fnameNoExt := strings.TrimSuffix(fname, filepath.Ext(fname))
+	metadataPath := fnameNoExt + ".meta.json"
+
+	if _, err := os.Stat(metadataPath); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	fp, err := os.Open(metadataPath)
+	checkError(err)
+	defer func() { checkError(fp.Close()) }()
+
+	decoder := json.NewDecoder(fp)
+	pm := &postMetadata{}
+	checkError(decoder.Decode(pm))
+	fmt.Printf("Decoded metadata: %+v\n", pm)
+	return pm
 }
 
 func renderPages(conf siteConfig) {
@@ -220,6 +248,7 @@ func renderPages(conf siteConfig) {
 			postURL := strings.TrimPrefix(outpath, destpath)
 			postURL = strings.TrimPrefix(postURL, "/") // make it relative
 			p.url = postURL
+			p.metadata = readPostMetadata(fname)
 			postlisting = append(postlisting, p)
 			nposts++
 		}
