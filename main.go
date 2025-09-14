@@ -124,7 +124,6 @@ func childLiterals(node ast.Node) string {
 func parsePost(mdsource []byte) post {
 	var p post
 	rootnode := parseMD(mdsource)
-	fmt.Println("parsing post")
 	visitor := func(node ast.Node, _ bool) ast.WalkStatus {
 		switch nd := node.(type) {
 		case *ast.Heading:
