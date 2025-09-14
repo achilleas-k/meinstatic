@@ -25,6 +25,15 @@ var (
 	verstr string
 )
 
+type siteConfig struct {
+	SiteName         string `mapstructure:"SiteName"`
+	SourcePath       string `mapstructure:"SourcePath"`
+	DestinationPath  string `mapstructure:"DestinationPath"`
+	PageTemplateFile string `mapstructure:"PageTemplateFile"`
+	ResourcePath     string `mapstructure:"ResourcePath"`
+	PostPattern      string `mapstructure:"PostPattern"`
+}
+
 type templateData struct {
 	SiteName template.HTML
 	Body     template.HTML
@@ -61,28 +70,30 @@ func makeHTML(data templateData, templateFile string) []byte {
 	return rendered.Bytes()
 }
 
-func loadConfig() map[string]any {
-	config := viper.GetViper()
-	config.SetConfigName("config")
-	config.AddConfigPath(".")
-	config.SetDefault("SiteName", "")
-	config.SetDefault("SourcePath", "pages-md")
-	config.SetDefault("DestinationPath", "html")
-	config.SetDefault("PageTemplateFile", "templates/template.html")
-	config.SetDefault("ResourcePath", "res")
-	config.SetDefault("PostPattern", `[0-9]{8}-.*`)
-	err := config.ReadInConfig()
+func loadConfig() siteConfig {
+	viper := viper.GetViper()
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.SetDefault("SiteName", "")
+	viper.SetDefault("SourcePath", "pages-md")
+	viper.SetDefault("DestinationPath", "html")
+	viper.SetDefault("PageTemplateFile", "templates/template.html")
+	viper.SetDefault("ResourcePath", "res")
+	viper.SetDefault("PostPattern", `[0-9]{8}-.*`)
+	err := viper.ReadInConfig()
 	if err != nil && !strings.Contains(err.Error(), "Not Found") {
 		checkError(err)
 	}
-	return config.AllSettings()
+	config := siteConfig{}
+	checkError(viper.UnmarshalExact(&config))
+	return config
 }
 
-func createDirs(conf map[string]any) {
-	destpath := conf["destinationpath"].(string)
+func createDirs(conf siteConfig) {
+	destpath := conf.DestinationPath
 	checkError(os.MkdirAll(destpath, 0777))
 
-	imagepath := path.Join(conf["destinationpath"].(string), "images")
+	imagepath := path.Join(destpath, "images")
 	checkError(os.MkdirAll(imagepath, 0777))
 
 	respath := path.Join(destpath, "res")
@@ -137,8 +148,8 @@ func parseMD(md []byte) ast.Node {
 	return mdparser.Parse(md)
 }
 
-func renderPages(conf map[string]any) {
-	srcpath := conf["sourcepath"].(string)
+func renderPages(conf siteConfig) {
+	srcpath := conf.SourcePath
 
 	var pagesmd []string
 	mdfinder := func(path string, _ os.FileInfo, err error) error {
@@ -152,7 +163,7 @@ func renderPages(conf map[string]any) {
 	}
 	checkError(filepath.Walk(srcpath, mdfinder))
 
-	sitename := conf["sitename"].(string)
+	sitename := conf.SiteName
 	var data templateData
 
 	data.SiteName = template.HTML(sitename)
@@ -169,9 +180,9 @@ func renderPages(conf map[string]any) {
 	nposts := 0
 	postlisting := make([]post, 0, npages)
 
-	destpath := conf["destinationpath"].(string)
-	templateFile := conf["pagetemplatefile"].(string)
-	postrePattern := conf["postpattern"].(string)
+	destpath := conf.DestinationPath
+	templateFile := conf.PageTemplateFile
+	postrePattern := conf.PostPattern
 	fmt.Printf(":: Rendering %d page%s\n", npages, plural(npages))
 	postre, err := regexp.Compile(postrePattern)
 	checkError(err)
@@ -239,9 +250,9 @@ func renderPages(conf map[string]any) {
 
 // copyResources copies all files from the configured resource directory
 // to the "res" subdirectory under the destination path.
-func copyResources(conf map[string]any) {
+func copyResources(conf siteConfig) {
 	fmt.Println(":: Copying resources")
-	dstroot := conf["destinationpath"].(string)
+	dstroot := conf.DestinationPath
 	walker := func(srcloc string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -258,7 +269,7 @@ func copyResources(conf map[string]any) {
 		return nil
 	}
 
-	checkError(filepath.Walk(conf["resourcepath"].(string), walker))
+	checkError(filepath.Walk(conf.ResourcePath, walker))
 	fmt.Println("== Done ==")
 }
 
