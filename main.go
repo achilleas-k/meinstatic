@@ -12,8 +12,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/microcosm-cc/bluemonday"
-	"github.com/russross/blackfriday/v2"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/ast"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 	"github.com/spf13/viper"
 )
 
@@ -96,11 +98,11 @@ type post struct {
 
 // childLiterals concatenates the literals under a given node into a single
 // string.
-func childLiterals(node *blackfriday.Node) string {
+func childLiterals(node ast.Node) string {
 	var lit string
-	for child := node.FirstChild; child != nil; child = child.Next {
-		if child.IsLeaf() {
-			lit += string(child.Literal)
+	for _, child := range node.GetChildren() {
+		if leafNode := child.AsLeaf(); leafNode != nil {
+			lit += string(leafNode.Literal)
 		} else {
 			lit += childLiterals(child)
 		}
@@ -108,21 +110,31 @@ func childLiterals(node *blackfriday.Node) string {
 	return lit
 }
 
-func parsePost(mdsource []byte) (p post) {
-	md := blackfriday.New()
-	rootnode := md.Parse(mdsource)
-	visitor := func(node *blackfriday.Node, _ bool) blackfriday.WalkStatus {
-		if node.Type == blackfriday.Heading && node.Level == 1 && p.title == "" {
-			p.title = childLiterals(node)
-		} else if node.Type == blackfriday.Paragraph {
+func parsePost(mdsource []byte) post {
+	var p post
+	rootnode := parseMD(mdsource)
+	fmt.Println("parsing post")
+	visitor := func(node ast.Node, _ bool) ast.WalkStatus {
+		switch nd := node.(type) {
+		case *ast.Heading:
+			if nd.Level == 1 && p.title == "" {
+				p.title = childLiterals(node)
+			}
+		case *ast.Paragraph:
 			// Found first paragraph
 			p.summary = childLiterals(node)
-			return blackfriday.Terminate
+			return ast.Terminate
 		}
-		return blackfriday.GoToNext
+		return ast.GoToNext
 	}
-	rootnode.Walk(visitor)
-	return
+	ast.WalkFunc(rootnode, visitor)
+	return p
+}
+
+func parseMD(md []byte) ast.Node {
+	// each Parse call requires a new parser
+	mdparser := parser.NewWithExtensions(parser.CommonExtensions | parser.AutoHeadingIDs)
+	return mdparser.Parse(md)
 }
 
 func renderPages(conf map[string]any) {
@@ -163,17 +175,20 @@ func renderPages(conf map[string]any) {
 	fmt.Printf(":: Rendering %d page%s\n", npages, plural(npages))
 	postre, err := regexp.Compile(postrePattern)
 	checkError(err)
+
+	htmlFlags := html.HrefTargetBlank
+	htmlOpts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(htmlOpts)
+
 	for idx, fname := range pagesmd {
 		fmt.Printf("   %d: %s", idx+1, fname)
 		pagemd, err := os.ReadFile(fname)
 		checkError(err)
 
-		bfext := blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs)
-		unsafe := blackfriday.Run(pagemd, bfext)
-		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 		// reverse render posts
 		// data.Body[nposts-idx-1] = template.HTML(string(safe))
-		data.Body = template.HTML(string(safe))
+		doc := parseMD(pagemd)
+		data.Body = template.HTML(markdown.Render(doc, renderer))
 
 		// trim source path
 		outpath := strings.TrimPrefix(fname, srcpath)
@@ -212,9 +227,8 @@ func renderPages(conf map[string]any) {
 		for idx, p := range postlisting {
 			bodystr = fmt.Sprintf("%s%d. [%s](%s)\n    - %s\n", bodystr, idx, p.title, p.url, p.summary)
 		}
-		unsafe := blackfriday.Run([]byte(bodystr))
-		safe := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-		data.Body = template.HTML(string(safe))
+		doc := parseMD([]byte(bodystr))
+		data.Body = template.HTML(markdown.Render(doc, renderer))
 		outpath := filepath.Join(destpath, "posts.html")
 		fmt.Printf("   Saving posts: %s\n", outpath)
 		err := os.WriteFile(outpath, makeHTML(data, templateFile), 0666)
