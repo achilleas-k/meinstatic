@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -175,7 +176,27 @@ func readPostMetadata(fname string) *postMetadata {
 	return pm
 }
 
+func newRendererWithMetadata(metadata map[string]*postMetadata) *html.Renderer {
+	opts := html.RendererOptions{
+		RenderNodeHook: func(w io.Writer, node ast.Node, entering bool) (ast.WalkStatus, bool) {
+			switch nd := node.(type) {
+			case *ast.Heading:
+				if nd.Level == 1 {
+
+				}
+			}
+			return ast.GoToNext, entering
+		},
+	}
+	return html.NewRenderer(opts)
+}
+
 func renderPages(conf siteConfig) {
+	// TODO: simplify this function, break it up into functions.  Handle each
+	// file separately, but also load its metadata while reading and generate
+	// the post listing snippets at the same time if necessary. Generate the
+	// post listing as an AST and then render it, instead of rendering lines
+	// manually like an idiot.
 	srcpath := conf.SourcePath
 
 	var pagesmd []string
@@ -214,8 +235,13 @@ func renderPages(conf siteConfig) {
 	postre, err := regexp.Compile(postrePattern)
 	checkError(err)
 
-	htmlOpts := html.RendererOptions{}
-	renderer := html.NewRenderer(htmlOpts)
+	fileMetadata := make(map[string]*postMetadata)
+	for _, fname := range pagesmd {
+		// first pass to collect metadata for each file
+		fileMetadata[fname] = readPostMetadata(fname)
+	}
+
+	renderer := newRendererWithMetadata(fileMetadata)
 
 	for idx, fname := range pagesmd {
 		fmt.Printf("   %d: %s", idx+1, fname)
@@ -248,7 +274,7 @@ func renderPages(conf siteConfig) {
 			postURL := strings.TrimPrefix(outpath, destpath)
 			postURL = strings.TrimPrefix(postURL, "/") // make it relative
 			p.url = postURL
-			p.metadata = readPostMetadata(fname)
+			p.metadata = fileMetadata[fname]
 			postlisting = append(postlisting, p)
 			nposts++
 		}
@@ -263,7 +289,11 @@ func renderPages(conf siteConfig) {
 		// TODO: create listing page as ast instead of manually rendering blocks
 		var bodystr string
 		for idx, p := range postlisting {
-			bodystr = fmt.Sprintf("%s%d. [%s](%s)\n    - %s\n", bodystr, idx, p.title, p.url, p.summary)
+			var date string
+			if p.metadata != nil {
+				date = fmt.Sprintf("(<time datetime=%s>%s</time>)", p.metadata.DatePosted.Format(time.UnixDate), p.metadata.DatePosted.Format("Mon, 02 Jan 2006"))
+			}
+			bodystr = fmt.Sprintf("%s%d. [%s](%s) %s\n    - %s\n", bodystr, idx, p.title, p.url, date, p.summary)
 		}
 		doc := parseMD([]byte(bodystr))
 		data.Body = template.HTML(markdown.Render(doc, renderer))
