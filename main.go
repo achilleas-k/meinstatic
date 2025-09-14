@@ -186,8 +186,7 @@ func renderPages(conf siteConfig) {
 	postre, err := regexp.Compile(postrePattern)
 	checkError(err)
 
-	htmlFlags := html.HrefTargetBlank
-	htmlOpts := html.RendererOptions{Flags: htmlFlags}
+	htmlOpts := html.RendererOptions{}
 	renderer := html.NewRenderer(htmlOpts)
 
 	for idx, fname := range pagesmd {
